@@ -107,15 +107,15 @@ func (f Modelfile) CreateRequest(relativeDir string) (*api.CreateRequest, error)
 			req.Parser = c.Args
 		case "min_version":
 			// golang.org/x/mod/semver requires "v" prefix
-			v := c.Args
-			if !strings.HasPrefix(v, "v") {
-				v = "v" + v
+			minVersion := c.Args
+			if !strings.HasPrefix(minVersion, "v") {
+				minVersion = "v" + minVersion
 			}
-			if !semver.IsValid(v) {
+			if !semver.IsValid(minVersion) {
 				return nil, fmt.Errorf("min_version must be a valid semver (e.g. 0.14.0)")
 			}
 			// Store without "v" prefix
-			req.MinVersion = strings.TrimPrefix(v, "v")
+			req.MinVersion = strings.TrimPrefix(minVersion, "v")
 		case "message":
 			role, msg, _ := strings.Cut(c.Args, ": ")
 			messages = append(messages, api.Message{Role: role, Content: msg})

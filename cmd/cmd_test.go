@@ -300,7 +300,7 @@ Weigh anchor!
 				ParameterSize:     "7B",
 				QuantizationLevel: "FP16",
 			},
-			MinVersion: "0.14.0",
+			Requires: "0.14.0",
 		}, false, &b); err != nil {
 			t.Fatal(err)
 		}
@@ -309,7 +309,7 @@ Weigh anchor!
     architecture    test      
     parameters      7B        
     quantization    FP16      
-    min version     0.14.0    
+    requires        0.14.0    
 
 `
 		if diff := cmp.Diff(expect, b.String()); diff != "" {

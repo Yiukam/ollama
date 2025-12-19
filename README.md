@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://ollama.com">
-    <img alt="ollama" width="240" src="https://github.com/ollama/ollama/assets/3325447/0d0b44e2-8f4a-4e99-9b52-a5c1c741c8f7">
+    <img alt="ollama" width="240" src="assets/0d0b455e2-6f4a-4e89-9b52-a5c1c741c5f9.png">
   </a>
 </div>
 

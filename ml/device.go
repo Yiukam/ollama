@@ -483,6 +483,7 @@ func FlashAttentionSupported(l []DeviceInfo) bool {
 			gpu.Name == "Metal" || gpu.Library == "Metal" ||
 			(gpu.Library == "CUDA" && gpu.DriverMajor >= 7 && !(gpu.ComputeMajor == 7 && gpu.ComputeMinor == 2)) ||
 			gpu.Library == "ROCm" ||
+			gpu.Library == "MUSA" ||
 			gpu.Library == "Vulkan"
 
 		if !supportsFA {
@@ -512,11 +513,14 @@ func GetVisibleDevicesEnv(l []DeviceInfo, mustFilter bool) map[string]string {
 func (d DeviceInfo) NeedsInitValidation() bool {
 	// ROCm: rocblas will crash on unsupported devices.
 	// CUDA: verify CC is supported by the version of the library
+	// MUSA: Skip validation for now - GGML_CUDA_INIT not implemented in MUSA backend
 	return d.Library == "ROCm" || d.Library == "CUDA"
 }
 
 // Set the init validation environment variable
 func (d DeviceInfo) AddInitValidation(env map[string]string) {
+	// GGML_CUDA_INIT forces deep initialization for CUDA/ROCm to verify GPU support
+	// MUSA backend doesn't implement this validation mechanism yet
 	env["GGML_CUDA_INIT"] = "1" // force deep initialization to trigger crash on unsupported GPUs
 }
 
@@ -549,6 +553,9 @@ func (d DeviceInfo) updateVisibleDevicesEnv(env map[string]string, mustFilter bo
 			return
 		}
 		envVar = "CUDA_VISIBLE_DEVICES"
+	case "MUSA":
+		// MUSA devices are filtered via MUSA_VISIBLE_DEVICES
+		envVar = "MUSA_VISIBLE_DEVICES"
 	default:
 		// Vulkan is not filtered via env var, but via scheduling decisions
 		return

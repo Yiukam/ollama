@@ -35,7 +35,9 @@
 #define cudaDeviceDisablePeerAccess musaDeviceDisablePeerAccess
 #define cudaDeviceEnablePeerAccess musaDeviceEnablePeerAccess
 #define cudaDeviceProp musaDeviceProp
+#define cudaDeviceReset musaDeviceReset
 #define cudaDeviceSynchronize musaDeviceSynchronize
+#define cudaDriverGetVersion musaDriverGetVersion
 #define cudaError_t musaError_t
 #define cudaErrorPeerAccessAlreadyEnabled musaErrorPeerAccessAlreadyEnabled
 #define cudaErrorPeerAccessNotEnabled musaErrorPeerAccessNotEnabled

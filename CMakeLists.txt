@@ -151,3 +151,53 @@ if(Vulkan_FOUND)
         LIBRARY DESTINATION ${OLLAMA_INSTALL_DIR} COMPONENT Vulkan
     )
 endif()
+
+# MUSA backend support
+# Check for MUSA compiler and toolkit
+if(NOT DEFINED ENV{MUSA_PATH})
+    if(EXISTS /opt/musa)
+        set(MUSA_PATH /opt/musa)
+    elseif(EXISTS /usr/local/musa)
+        set(MUSA_PATH /usr/local/musa)
+    endif()
+else()
+    set(MUSA_PATH $ENV{MUSA_PATH})
+endif()
+
+if(MUSA_PATH AND EXISTS "${MUSA_PATH}/bin/clang")
+    message(STATUS "MUSA compiler found at ${MUSA_PATH}")
+    
+    # Enable MUSA backend if not explicitly disabled
+    if(NOT DEFINED GGML_MUSA)
+        set(GGML_MUSA ON)
+    endif()
+    
+    if(GGML_MUSA)
+        # Set MUSA architectures if not defined
+        if(NOT DEFINED MUSA_ARCHITECTURES)
+            set(MUSA_ARCHITECTURES "21;22;31")
+        endif()
+        message(STATUS "MUSA backend enabled with architectures: ${MUSA_ARCHITECTURES}")
+        
+        # Install MUSA backend library (subdirectory is added by ggml_add_backend in ggml/src/CMakeLists.txt)
+        install(TARGETS ggml-musa
+            RUNTIME_DEPENDENCY_SET musa
+            RUNTIME DESTINATION ${OLLAMA_INSTALL_DIR} COMPONENT MUSA
+            LIBRARY DESTINATION ${OLLAMA_INSTALL_DIR} COMPONENT MUSA
+        )
+        
+        # Install MUSA runtime dependencies
+        install(RUNTIME_DEPENDENCY_SET musa
+            DIRECTORIES ${MUSA_PATH}/lib ${MUSA_PATH}/lib64
+            PRE_INCLUDE_REGEXES musart mublas musa mudnn
+            PRE_EXCLUDE_REGEXES ".*"
+            RUNTIME DESTINATION ${OLLAMA_INSTALL_DIR} COMPONENT MUSA
+            LIBRARY DESTINATION ${OLLAMA_INSTALL_DIR} COMPONENT MUSA
+        )
+    endif()
+else()
+    if(GGML_MUSA)
+        message(WARNING "MUSA backend requested but MUSA compiler not found. Skipping MUSA backend compilation.")
+        set(GGML_MUSA OFF)
+    endif()
+endif()

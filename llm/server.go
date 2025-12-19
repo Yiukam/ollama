@@ -48,6 +48,7 @@ func (e filteredEnv) LogValue() slog.Value {
 				strings.HasPrefix(key, "ROCR_"),
 				strings.HasPrefix(key, "ROCM_"),
 				strings.HasPrefix(key, "HIP_"),
+				strings.HasPrefix(key, "MUSA_"),
 				strings.HasPrefix(key, "GPU_"),
 				strings.HasPrefix(key, "HSA_"),
 				strings.HasPrefix(key, "GGML_"),

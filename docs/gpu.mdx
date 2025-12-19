@@ -129,6 +129,49 @@ accessing the AMD GPU devices. On the host system you can run
 
 Ollama supports GPU acceleration on Apple devices via the Metal API.
 
+## Moore Threads (MUSA)
+
+Ollama supports Moore Threads GPUs via the MUSA (Moore Threads Unified System Architecture) library on Linux.
+
+### Supported GPUs
+
+| Family         | Cards and accelerators                                                                                               |
+| -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| MTT S Series   | `MTT S80` `MTT S3000`                                                                                                |
+
+### Compute Capabilities
+
+MUSA devices report compute capability similar to CUDA:
+- MTT S80: Compute capability 2.1 (mp_21)
+- MTT S3000: Compute capability 2.2 (mp_22)
+
+### Requirements
+
+- Linux operating system (Ubuntu 20.04+, CentOS 8+)
+- MUSA toolkit version 1.0 or newer (1.2+ recommended)
+- MUSA driver installed and configured
+
+### GPU Selection
+
+If you have multiple MUSA GPUs in your system and want to limit Ollama to use a
+subset, you can set `MUSA_VISIBLE_DEVICES` to a comma separated list of GPU IDs.
+If you want to ignore the GPUs and force CPU usage, use an invalid GPU ID (e.g., "-1").
+
+### Features
+
+MUSA backend supports:
+- Flash attention (when supported by the device)
+- Quantized models (Q4_0, Q4_1, Q5_0, Q5_1, Q8_0)
+- Multi-GPU layer distribution
+- Partial offloading (some layers on GPU, some on CPU)
+- Concurrent inference requests
+- Multimodal models (vision and text processing)
+
+### Mixed Backend Systems
+
+MUSA can coexist with other GPU backends (CUDA, ROCm, Vulkan) on the same system.
+Ollama will automatically detect and use the appropriate backend for each device.
+
 
 ## Vulkan GPU Support
 

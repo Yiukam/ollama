@@ -3881,6 +3881,8 @@ static enum ggml_status ggml_backend_cuda_graph_reserve(ggml_backend_t backend, 
     // Create CuBLAS handles early to avoid synchronous allocations during graph capture.
     cuda_ctx->cublas_handle();
 
+#ifdef USE_CUDA_GRAPH
+    // Only use stream capture when CUDA graphs are enabled
     CUDA_CHECK(cudaStreamBeginCapture(cuda_ctx->stream(), cudaStreamCaptureModeRelaxed));
 
     enum ggml_status result = GGML_STATUS_SUCCESS;
@@ -3898,6 +3900,13 @@ static enum ggml_status ggml_backend_cuda_graph_reserve(ggml_backend_t backend, 
     cudaGraph_t graph;
     CUDA_CHECK(cudaStreamEndCapture(cuda_ctx->stream(), &graph));
     CUDA_CHECK(cudaGraphDestroy(graph));
+#else
+    // When CUDA graphs are not enabled, we cannot use stream capture to record operations
+    // without actually executing them. Since alloc=false means we're using fake pointers,
+    // we must skip kernel execution to avoid illegal memory access errors (e.g., on MUSA).
+    // Just return success - the memory size calculation will be done by the pool.
+    enum ggml_status result = GGML_STATUS_SUCCESS;
+#endif
 
     reserving_graph = false;
 

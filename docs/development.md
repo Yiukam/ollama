@@ -117,7 +117,7 @@ cmake --build build
 > [!IMPORTANT]
 > Building for MUSA requires enabling the MUSA backend:
 > ```
-> cmake -B build -DGGML_MUSA=ON -DMUSA_ARCHITECTURES="21;22;31" -DGGML_MUSA_GRAPHS=ON -DGGML_MUSA_MUDNN_COPY=ON
+> cmake -B build -DGGML_MUSA=ON -DMUSA_ARCHITECTURES="21;22;31" -DGGML_MUSA_GRAPHS=OFF -DGGML_MUSA_MUDNN_COPY=OFF
 > cmake --build build
 > ```
 > 
@@ -127,6 +127,8 @@ cmake --build build
 > - `31` - Future Moore Threads GPUs
 > 
 > You can specify multiple architectures separated by semicolons.
+>
+> **Note:** CUDA Graphs (`GGML_MUSA_GRAPHS`) should be disabled for MUSA due to compatibility issues with stream capture. If you encounter `MUSA_ERROR_ILLEGAL_ADDRESS` or "operation not permitted when stream is capturing" errors, ensure graphs are disabled.
 
 Lastly, run Ollama:
 
@@ -347,6 +349,34 @@ Monitor GPU memory usage with `mthreads-gmi` to confirm the model is loaded on t
    - Ensure correct architecture target: `-DMUSA_ARCHITECTURES="21;22"`
    - Enable MUSA graphs: `-DGGML_MUSA_GRAPHS=ON`
    - Enable MUDNN copy: `-DGGML_MUSA_MUDNN_COPY=ON`
+
+#### CUDA Graph / Stream Capture Errors
+
+**Symptoms:** `MUSA_ERROR_ILLEGAL_ADDRESS`, "operation not permitted when stream is capturing", or crashes during model loading.
+
+**Solutions:**
+
+1. **Disable CUDA Graphs**
+   - Rebuild with graphs disabled:
+     ```shell
+     cmake -B build -DGGML_MUSA=ON -DMUSA_ARCHITECTURES="21;22;31" -DGGML_MUSA_GRAPHS=OFF
+     cmake --build build
+     ```
+
+2. **Disable MUDNN Copy if issues persist**
+   - Add `-DGGML_MUSA_MUDNN_COPY=OFF` to cmake flags
+
+3. **Verified working configuration**
+   ```shell
+   cmake -B build \
+     -DGGML_MUSA=ON \
+     -DMUSA_ARCHITECTURES="21;22;31" \
+     -DGGML_MUSA_GRAPHS=OFF \
+     -DGGML_MUSA_MUDNN_COPY=OFF
+   cmake --build build
+   ```
+
+**Technical Background:** MUSA's CUDA Graph implementation has stricter limitations than NVIDIA CUDA. Certain operations (memory allocation, synchronization) are not permitted during graph capture, which can cause crashes. Disabling graphs avoids these issues with minimal performance impact (typically 5-10%).
 
 #### Build Failures
 

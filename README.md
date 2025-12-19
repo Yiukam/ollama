@@ -11,7 +11,7 @@ Get up and running with large language models.
 > [!NOTE]
 > **MUSA (Moore Threads) GPU Support**
 > 
-> For Moore Threads GPU support, see the [MUSA-Specific Configuration](docs/development.md#musa-specific-configuration) guide.
+> For Moore Threads GPU support, see the [MUSA-Specific Configuration](docs/development.md#MUSA (Moore Threads)) guide.
 
 ### macOS
 

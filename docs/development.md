@@ -77,8 +77,6 @@ cmake --build build --config Release
 > cmake --build build --config Release
 > ```
 
-
-
 Lastly, run Ollama:
 
 ```shell
@@ -99,13 +97,13 @@ Install prerequisites:
 - (Optional) NVIDIA GPU support
     - [CUDA SDK](https://developer.nvidia.com/cuda-downloads)
 - (Optional) Moore Threads GPU support
-    - [MUSA Toolkit](https://developer.mthreads.com/) - for Moore Threads MTT GPUs
+    - [MUSA Toolkit](https://developer.mthreads.com/) - for Moore Threads MTT S80/S3000 GPUs
 - (Optional) VULKAN GPU support
     - [VULKAN SDK](https://vulkan.lunarg.com/sdk/home) - useful for AMD/Intel GPUs
     - Or install via package manager: `sudo apt install vulkan-sdk` (Ubuntu/Debian) or `sudo dnf install vulkan-sdk` (Fedora/CentOS)
+
 > [!IMPORTANT]
 > Ensure prerequisites are in `PATH` before running CMake.
-
 
 Then, configure and build the project:
 
@@ -116,19 +114,16 @@ cmake --build build
 
 > [!IMPORTANT]
 > Building for MUSA requires enabling the MUSA backend:
-> ```
-> cmake -B build -DGGML_MUSA=ON -DMUSA_ARCHITECTURES="21;22;31" -DGGML_MUSA_GRAPHS=OFF -DGGML_MUSA_MUDNN_COPY=OFF
+> ```shell
+> cmake -B build -DGGML_MUSA=ON -DMUSA_ARCHITECTURES="21;22;31" \
+>       -DGGML_MUSA_GRAPHS=ON -DGGML_MUSA_MUDNN_COPY=ON
 > cmake --build build
 > ```
 > 
 > MUSA architecture targets:
-> - `21` - MTT S80 (mp_21)
-> - `22` - MTT S3000 (mp_22)
+> - `21` - MTT S80
+> - `22` - MTT S3000
 > - `31` - Future Moore Threads GPUs
-> 
-> You can specify multiple architectures separated by semicolons.
->
-> **Note:** CUDA Graphs (`GGML_MUSA_GRAPHS`) should be disabled for MUSA due to compatibility issues with stream capture. If you encounter `MUSA_ERROR_ILLEGAL_ADDRESS` or "operation not permitted when stream is capturing" errors, ensure graphs are disabled.
 
 Lastly, run Ollama:
 
@@ -196,209 +191,57 @@ Ollama looks for acceleration libraries in the following paths relative to the `
 
 If the libraries are not found, Ollama will not run with any acceleration libraries.
 
-## MUSA-Specific Configuration
+## MUSA (Moore Threads)
+
+### Build Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `GGML_MUSA` | Enable MUSA backend | OFF |
+| `MUSA_ARCHITECTURES` | Target GPU architectures (21=S80, 22=S3000, 31=future) | - |
+| `GGML_MUSA_GRAPHS` | Enable CUDA Graph optimization | OFF |
+| `GGML_MUSA_MUDNN_COPY` | Enable MUDNN memory copy optimization | OFF |
+
+### Build Commands
+
+Basic build:
+```shell
+cmake -B build -DGGML_MUSA=ON -DMUSA_ARCHITECTURES="21;22;31"
+cmake --build build
+```
+
+Optimized build (recommended):
+```shell
+cmake -B build -DGGML_MUSA=ON -DMUSA_ARCHITECTURES="21;22;31" \
+      -DGGML_MUSA_GRAPHS=ON -DGGML_MUSA_MUDNN_COPY=ON
+cmake --build build
+```
 
 ### Environment Variables
 
-The following environment variables can be used to configure MUSA backend behavior:
-
-- `MUSA_VISIBLE_DEVICES` - Comma-separated list of MUSA GPU IDs to use. Set to "-1" to disable MUSA and force CPU inference.
-- `OLLAMA_MODELS` - Directory where Ollama stores models (applies to all backends)
-- `GGML_MUSA` - Set to "1" to enable MUSA backend (build-time)
-
-Example:
-```shell
-# Use only MUSA GPU 0
-export MUSA_VISIBLE_DEVICES=0
-go run . serve
-
-# Use MUSA GPUs 0 and 1
-export MUSA_VISIBLE_DEVICES=0,1
-go run . serve
-
-# Disable MUSA, use CPU only
-export MUSA_VISIBLE_DEVICES=-1
-go run . serve
-```
+| Variable | Description |
+|----------|-------------|
+| `MUSA_VISIBLE_DEVICES` | Comma-separated list of GPU IDs to use. Set to `-1` to disable MUSA. |
 
 ### Verifying MUSA Support
 
-To verify that MUSA support is active:
+1. Check GPU detection at startup - look for MUSA devices in logs
+2. Use `mthreads-gmi` to monitor GPU status and memory usage
+3. Run a model and verify GPU memory is being used
 
-1. Check GPU detection at startup:
-```shell
-go run . serve
-```
-Look for log messages indicating MUSA devices were detected, including device names, memory capacity, and compute capability.
+### Troubleshooting
 
-2. Check device status with Moore Threads tools:
-```shell
-mthreads-gmi
-```
+**MUSA devices not detected:**
+- Verify MUSA toolkit is installed and in PATH
+- Check driver is loaded: `mthreads-gmi`
+- Ensure Ollama was built with `-DGGML_MUSA=ON`
 
-3. Run a model and verify GPU usage:
-```shell
-# In another terminal
-go run . run qwen3:0.6b
-```
-Monitor GPU memory usage with `mthreads-gmi` to confirm the model is loaded on the GPU.
+**Out of memory errors:**
+- Use a smaller or quantized model
+- Close other GPU applications
+- Use multiple GPUs with `MUSA_VISIBLE_DEVICES=0,1`
 
-### Troubleshooting MUSA Issues
-
-#### MUSA Devices Not Detected
-
-**Symptoms:** Ollama falls back to CPU inference, no MUSA devices shown in logs.
-
-**Possible Causes and Solutions:**
-
-1. **MUSA toolkit not installed or not in PATH**
-   - Verify MUSA installation: `which mcc`
-   - Ensure MUSA libraries are in `LD_LIBRARY_PATH`
-   - Add MUSA to PATH: `export PATH=/usr/local/musa/bin:$PATH`
-
-2. **MUSA driver not loaded**
-   - Check driver status: `lsmod | grep musa`
-   - Load driver if needed: `sudo modprobe musa`
-   - Verify with: `mthreads-gmi`
-
-3. **Ollama built without MUSA support**
-   - Rebuild with MUSA enabled:
-     ```shell
-     cmake -B build -DGGML_MUSA=ON -DMUSA_ARCHITECTURES="21;22;31"
-     cmake --build build
-     ```
-
-4. **MUSA_VISIBLE_DEVICES set incorrectly**
-   - Check environment: `echo $MUSA_VISIBLE_DEVICES`
-   - Unset if needed: `unset MUSA_VISIBLE_DEVICES`
-
-#### MUSA Out of Memory Errors
-
-**Symptoms:** Model fails to load, "out of memory" errors in logs.
-
-**Solutions:**
-
-1. **Use a smaller model or quantized version**
-   - Try Q4_0 or Q5_0 quantization instead of full precision
-   - Use a smaller parameter model
-
-2. **Enable partial offloading**
-   - Ollama automatically attempts partial offloading
-   - Some layers will run on CPU, some on GPU
-
-3. **Close other GPU applications**
-   - Check GPU memory usage: `mthreads-gmi`
-   - Close other applications using MUSA GPUs
-
-4. **Use multiple GPUs**
-   - Set `MUSA_VISIBLE_DEVICES=0,1` to distribute across GPUs
-
-#### MUSA Driver Version Mismatch
-
-**Symptoms:** "driver version mismatch" or "incompatible driver" errors.
-
-**Solutions:**
-
-1. **Update MUSA driver**
-   - Check current version: `mthreads-gmi`
-   - Install latest driver from Moore Threads website
-   - Minimum version: 1.0, Recommended: 1.2+
-
-2. **Update MUSA toolkit**
-   - Ensure toolkit version matches driver version
-   - Reinstall toolkit if necessary
-
-#### Mixed Backend Issues (MUSA + CUDA/ROCm)
-
-**Symptoms:** Wrong GPU backend selected, device conflicts.
-
-**Solutions:**
-
-1. **Explicitly select MUSA devices**
-   - Use `MUSA_VISIBLE_DEVICES` to specify MUSA GPUs
-   - Use `CUDA_VISIBLE_DEVICES` or `ROCR_VISIBLE_DEVICES` for other GPUs
-
-2. **Check device enumeration**
-   - Ollama logs show which backend is assigned to each device
-   - Verify correct backend assignment in startup logs
-
-3. **Disable unwanted backends**
-   - Set `CUDA_VISIBLE_DEVICES=-1` to disable CUDA
-   - Set `ROCR_VISIBLE_DEVICES=-1` to disable ROCm
-   - Set `MUSA_VISIBLE_DEVICES=-1` to disable MUSA
-
-#### Performance Issues
-
-**Symptoms:** Slow inference, lower than expected performance.
-
-**Solutions:**
-
-1. **Verify flash attention is enabled**
-   - Check logs for "flash attention" messages
-   - MUSA devices should support flash attention by default
-
-2. **Check layer offloading**
-   - Logs should show layers offloaded to MUSA
-   - If most layers on CPU, increase GPU memory availability
-
-3. **Monitor GPU utilization**
-   - Use `mthreads-gmi` to check GPU usage
-   - Low utilization may indicate CPU bottleneck
-
-4. **Optimize MUSA build flags**
-   - Ensure correct architecture target: `-DMUSA_ARCHITECTURES="21;22"`
-   - Enable MUSA graphs: `-DGGML_MUSA_GRAPHS=ON`
-   - Enable MUDNN copy: `-DGGML_MUSA_MUDNN_COPY=ON`
-
-#### CUDA Graph / Stream Capture Errors
-
-**Symptoms:** `MUSA_ERROR_ILLEGAL_ADDRESS`, "operation not permitted when stream is capturing", or crashes during model loading.
-
-**Solutions:**
-
-1. **Disable CUDA Graphs**
-   - Rebuild with graphs disabled:
-     ```shell
-     cmake -B build -DGGML_MUSA=ON -DMUSA_ARCHITECTURES="21;22;31" -DGGML_MUSA_GRAPHS=OFF
-     cmake --build build
-     ```
-
-2. **Disable MUDNN Copy if issues persist**
-   - Add `-DGGML_MUSA_MUDNN_COPY=OFF` to cmake flags
-
-3. **Verified working configuration**
-   ```shell
-   cmake -B build \
-     -DGGML_MUSA=ON \
-     -DMUSA_ARCHITECTURES="21;22;31" \
-     -DGGML_MUSA_GRAPHS=OFF \
-     -DGGML_MUSA_MUDNN_COPY=OFF
-   cmake --build build
-   ```
-
-**Technical Background:** MUSA's CUDA Graph implementation has stricter limitations than NVIDIA CUDA. Certain operations (memory allocation, synchronization) are not permitted during graph capture, which can cause crashes. Disabling graphs avoids these issues with minimal performance impact (typically 5-10%).
-
-#### Build Failures
-
-**Symptoms:** CMake configuration or compilation errors.
-
-**Solutions:**
-
-1. **MUSA compiler not found**
-   - Install MUSA toolkit
-   - Add to PATH: `export PATH=/usr/local/musa/bin:$PATH`
-
-2. **Missing MUSA headers**
-   - Verify toolkit installation
-   - Check `/usr/local/musa/include` exists
-
-3. **Linker errors**
-   - Ensure MUSA libraries are installed
-   - Check `/usr/local/musa/lib` or `/usr/local/musa/lib64`
-   - Add to library path: `export LD_LIBRARY_PATH=/usr/local/musa/lib:$LD_LIBRARY_PATH`
-
-For additional help, reach out on [Discord](https://discord.gg/ollama) or file an [issue](https://github.com/ollama/ollama/issues) with:
-- MUSA toolkit version (`mcc --version`)
-- MUSA driver version (`mthreads-gmi`)
-- Ollama version and build configuration
-- Complete error logs
+**Build failures:**
+- Ensure MUSA toolkit is installed
+- Add to PATH: `export PATH=/usr/local/musa/bin:$PATH`
+- Add to library path: `export LD_LIBRARY_PATH=/usr/local/musa/lib:$LD_LIBRARY_PATH`

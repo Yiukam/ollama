@@ -12,6 +12,10 @@ Get up and running with large language models.
 > **MUSA (Moore Threads) GPU Support**
 > 
 > For Moore Threads GPU support, see the [Build on MUSA](docs/development.md#musa-moore-threads) guide.
+> 
+> This branch has been tested on MTT S80 with MUSA Toolkit 4.2.0 (Driver 3.1.0).
+> Build with: `cmake -B build -DGGML_MUSA=ON -DMUSA_ARCHITECTURES="21" -DGGML_MUSA_GRAPHS=ON -DGGML_MUSA_MUDNN_COPY=ON`
+
 
 ### macOS
 
